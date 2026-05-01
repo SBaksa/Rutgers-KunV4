@@ -52,3 +52,23 @@ func DeleteWord(s *discordgo.Session, m *discordgo.MessageCreate, args []string,
 	_, err := s.ChannelMessageSend(m.ChannelID, "Word counter deleted.")
 	return err
 }
+
+func TrackWordCount(userID, content string) {
+	var data wordCountData
+	if err := database.Instance.GetWordCount(userID, &data); err != nil || data.Word == "" {
+		return
+	}
+
+	words := strings.Fields(strings.ToLower(content))
+	added := 0
+	for _, w := range words {
+		if w == data.Word {
+			added++
+		}
+	}
+
+	if added > 0 {
+		data.Count += added
+		database.Instance.SetWordCount(userID, data)
+	}
+}

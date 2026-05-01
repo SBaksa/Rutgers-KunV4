@@ -139,13 +139,12 @@ func fetchCourseFromAPI(subject, semester, campus, level string) ([]RutgersCours
 	cacheKey := fmt.Sprintf("%s:%s:%s:%s", subject, semester, campus, level)
 
 	cacheMutex.RLock()
-	if entry, found := courseCache[cacheKey]; found {
-		if time.Since(entry.timestamp) < cacheTTL {
-			cacheMutex.RUnlock()
-			return entry.data, nil
-		}
-	}
+	entry, found := courseCache[cacheKey]
 	cacheMutex.RUnlock()
+
+	if found && time.Since(entry.timestamp) < cacheTTL {
+		return entry.data, nil
+	}
 
 	var resp *http.Response
 	var lastErr error
@@ -217,7 +216,7 @@ func getCurrentSemester() string {
 	if month >= 8 || (month == 7 && day >= 12) {
 		season = "9"
 	} else if month <= 4 || (month == 5 && day < 23) {
-		if month >= 1 || (month == 1 && day >= 12) {
+		if month > 1 || (month == 1 && day >= 12) {
 			season = "1"
 		} else {
 			season = "0"
@@ -429,6 +428,9 @@ func formatTime(start, end, pmCode string) string {
 		ampm = "AM"
 	}
 
+	if len(start) < 4 || len(end) < 4 {
+		return "No time provided"
+	}
 	startFormatted := fmt.Sprintf("%s:%s", start[:2], start[2:])
 	endFormatted := fmt.Sprintf("%s:%s", end[:2], end[2:])
 

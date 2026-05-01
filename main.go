@@ -46,10 +46,10 @@ func main() {
 		discordgo.IntentsGuilds |
 		discordgo.IntentsDirectMessages
 
-	processor := bot.NewCommandProcessor(4, log)
-	processor.Start()
-
 	verificationManager := verification.NewVerificationManager(log)
+
+	processor := bot.NewCommandProcessor(4, log, verificationManager)
+	processor.Start()
 
 	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		bot.MessageHandler(s, m, processor, log, verificationManager)

@@ -1,11 +1,11 @@
 package email
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"net/smtp"
 	"os"
-	"time"
 )
 
 type SMTPConfig struct {
@@ -34,9 +34,11 @@ func (c *SMTPConfig) IsConfigured() bool {
 
 // GenerateVerificationCode creates a 6-digit verification code
 func GenerateVerificationCode() string {
-	rand.Seed(time.Now().UnixNano())
-	code := rand.Intn(1000000)
-	return fmt.Sprintf("%06d", code)
+	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		panic("crypto/rand unavailable: " + err.Error())
+	}
+	return fmt.Sprintf("%06d", n.Int64())
 }
 
 // SendVerificationEmail sends verification code to Rutgers email

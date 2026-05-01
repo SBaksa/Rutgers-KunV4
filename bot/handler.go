@@ -28,6 +28,8 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor 
 		return
 	}
 
+	commands.TrackWordCount(m.Author.ID, m.Content)
+
 	const prefix = "!"
 	if !strings.HasPrefix(m.Content, prefix) {
 		return
@@ -57,17 +59,6 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor 
 
 	if err := processor.Submit(job); err != nil {
 		log.Error("Failed to submit command job", "command", command, "error", err)
-		return
-	}
-
-	if handler, ok := commands.Registry[command]; ok {
-		if err := handler(s, m, args, log, vm); err != nil {
-			log.Error("Command execution failed", "command", command, "error", err)
-			s.ChannelMessageSend(m.ChannelID, "❌ An error occurred while processing your command.")
-		}
-	} else {
-		log.Debug("Unknown command", "command", command, "author", m.Author.Username)
-		s.ChannelMessageSend(m.ChannelID, "❓ Unknown command. Type `!help`.")
 	}
 }
 
