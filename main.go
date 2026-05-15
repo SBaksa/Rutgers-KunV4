@@ -54,6 +54,24 @@ func main() {
 	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		bot.MessageHandler(s, m, processor, log, verificationManager)
 	})
+	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageDelete) {
+		bot.MessageDeleteHandler(s, m, log)
+	})
+	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageUpdate) {
+		bot.MessageUpdateHandler(s, m, log)
+	})
+	dg.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
+		bot.GuildMemberAddHandler(s, m, log)
+	})
+	dg.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
+		bot.GuildMemberRemoveHandler(s, m, log)
+	})
+	dg.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberUpdate) {
+		bot.MemberUpdateHandler(s, m, log)
+	})
+	dg.AddHandler(func(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
+		bot.ReactionHandler(s, r)
+	})
 
 	stopCleanup := make(chan struct{})
 	go func() {

@@ -109,7 +109,7 @@ func (vm *VerificationManager) ProcessDMMessage(s *discordgo.Session, m *discord
 		return
 	}
 
-	HandleDMMessage(s, m, vm.log)
+	HandleDMMessage(s, m, vm.log, vm)
 }
 
 // CleanupExpiredVerifications removes expired verification states

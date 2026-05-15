@@ -20,7 +20,7 @@ func CCAdd(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 	if m.GuildID == "" {
 		return nil
 	}
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}
@@ -47,7 +47,7 @@ func CCRemove(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 	if m.GuildID == "" {
 		return nil
 	}
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}

@@ -14,7 +14,7 @@ func SetWelcomeChannel(s *discordgo.Session, m *discordgo.MessageCreate, args []
 	if m.GuildID == "" {
 		return nil
 	}
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}
@@ -39,7 +39,7 @@ func SetWelcomeText(s *discordgo.Session, m *discordgo.MessageCreate, args []str
 	if m.GuildID == "" {
 		return nil
 	}
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}
@@ -70,7 +70,7 @@ func SetLogChannel(s *discordgo.Session, m *discordgo.MessageCreate, args []stri
 	if m.GuildID == "" {
 		return nil
 	}
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}
@@ -95,7 +95,7 @@ func SetAgreementChannel(s *discordgo.Session, m *discordgo.MessageCreate, args 
 	if m.GuildID == "" {
 		return nil
 	}
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}
@@ -132,7 +132,7 @@ func SetAgreementRoles(s *discordgo.Session, m *discordgo.MessageCreate, args []
 	if m.GuildID == "" {
 		return nil
 	}
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}
@@ -208,7 +208,7 @@ func ListConfig(s *discordgo.Session, m *discordgo.MessageCreate, args []string,
 	if m.GuildID == "" {
 		return nil
 	}
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}

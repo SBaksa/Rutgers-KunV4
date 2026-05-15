@@ -16,7 +16,7 @@ func Echo(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 		return nil
 	}
 
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}
@@ -45,7 +45,7 @@ func Ignore(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log
 		return nil
 	}
 
-	if !isModerator(s, m) {
+	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
 		return err
 	}
@@ -141,7 +141,7 @@ func NetID(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 	return err
 }
 
-func isModerator(s *discordgo.Session, m *discordgo.MessageCreate) bool {
+func IsModerator(s *discordgo.Session, m *discordgo.MessageCreate) bool {
 	member, err := s.GuildMember(m.GuildID, m.Author.ID)
 	if err != nil {
 		return false

@@ -1,9 +1,9 @@
 package bot
 
 import (
-	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/SBaksa/Rutgers-KunV4/bot/commands"
 	"github.com/SBaksa/Rutgers-KunV4/database"
@@ -28,6 +28,28 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor 
 		return
 	}
 
+	// Agreement channel enforcement: delete non-moderator messages that aren't !agree
+	agreementChannelID, _ := database.Instance.GetGuildSettingString(m.GuildID, "agreementChannel")
+	if agreementChannelID != "" && m.ChannelID == agreementChannelID && !commands.IsModerator(s, m) {
+		s.ChannelMessageDelete(m.ChannelID, m.ID)
+		if m.Content != "!agree" {
+			warning, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Please make sure you send `!agree`. You sent `%s`.", m.Content))
+			if warning != nil {
+				go func() {
+					time.Sleep(10 * time.Second)
+					s.ChannelMessageDelete(m.ChannelID, warning.ID)
+				}()
+			}
+			return
+		}
+	}
+
+	// Skip command processing in ignored channels
+	var ignored bool
+	if err := database.Instance.GetGuildSetting(m.GuildID, fmt.Sprintf("ignored:%s", m.ChannelID), &ignored); err == nil && ignored {
+		return
+	}
+
 	commands.TrackWordCount(m.Author.ID, m.Content)
 
 	const prefix = "!"
@@ -46,15 +68,11 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor 
 
 	log.Debug("Command received", "command", command, "author", m.Author.Username, "guild", m.GuildID)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	job := &CommandJob{
 		Session: s,
 		Message: m,
 		Command: command,
 		Args:    args,
-		Ctx:     ctx,
 	}
 
 	if err := processor.Submit(job); err != nil {

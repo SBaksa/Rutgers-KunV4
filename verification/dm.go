@@ -12,7 +12,7 @@ import (
 )
 
 // HandleDMMessage processes DM messages for verification flow
-func HandleDMMessage(s *discordgo.Session, m *discordgo.MessageCreate, log *logger.Logger) {
+func HandleDMMessage(s *discordgo.Session, m *discordgo.MessageCreate, log *logger.Logger, vm *VerificationManager) {
 	// Only handle DMs
 	if m.GuildID != "" {
 		return
@@ -51,11 +51,11 @@ func HandleDMMessage(s *discordgo.Session, m *discordgo.MessageCreate, log *logg
 
 	switch verificationState.Step {
 	case StepRoleSelection:
-		handleRoleSelection(s, m, &verificationState, log)
+		handleRoleSelection(s, m, &verificationState, log, vm)
 	case StepNetIDEntry:
-		handleNetIDEntry(s, m, &verificationState, log)
+		handleNetIDEntry(s, m, &verificationState, log, vm)
 	case StepCodeEntry:
-		handleCodeEntry(s, m, &verificationState, log)
+		handleCodeEntry(s, m, &verificationState, log, vm)
 	default:
 		log.Warn("Unknown verification step", "user", m.Author.ID, "step", verificationState.Step)
 		s.ChannelMessageSend(m.ChannelID, "An error occurred. Please start over with `!agree`.")
@@ -63,7 +63,7 @@ func HandleDMMessage(s *discordgo.Session, m *discordgo.MessageCreate, log *logg
 }
 
 // handleRoleSelection processes role selection step
-func handleRoleSelection(s *discordgo.Session, m *discordgo.MessageCreate, state *VerificationState, log *logger.Logger) {
+func handleRoleSelection(s *discordgo.Session, m *discordgo.MessageCreate, state *VerificationState, log *logger.Logger, vm *VerificationManager) {
 	roleName := strings.ToLower(strings.TrimSpace(m.Content))
 
 	// Get agreement roles for the guild
@@ -127,13 +127,13 @@ func handleRoleSelection(s *discordgo.Session, m *discordgo.MessageCreate, state
 	// Check if role requires verification
 	if selectedRole.Authenticate == "false" {
 		// No verification needed, assign role immediately
-		assignRoleAndFinish(s, m, state, selectedRole.RoleID, log)
+		assignRoleAndFinish(s, m, state, selectedRole.RoleID, log, vm)
 		return
 	}
 
 	// Role requires verification, move to NetID step
 	state.SetRole(selectedRole.RoleID)
-	if stateErr := database.Instance.SetAgreementState(m.Author.ID, state); stateErr != nil {
+	if stateErr := vm.UpdateVerificationState(m.Author.ID, state); stateErr != nil {
 		log.Error("Failed to update agreement state", "user", m.Author.ID, "error", stateErr)
 		s.ChannelMessageSend(m.ChannelID, "An error occurred. Please try `!agree` again.")
 		return
@@ -152,7 +152,7 @@ func handleRoleSelection(s *discordgo.Session, m *discordgo.MessageCreate, state
 }
 
 // handleNetIDEntry processes NetID entry step
-func handleNetIDEntry(s *discordgo.Session, m *discordgo.MessageCreate, state *VerificationState, log *logger.Logger) {
+func handleNetIDEntry(s *discordgo.Session, m *discordgo.MessageCreate, state *VerificationState, log *logger.Logger, vm *VerificationManager) {
 	netID := validation.NormalizeNetID(m.Content)
 
 	// Validate NetID format
@@ -175,7 +175,7 @@ func handleNetIDEntry(s *discordgo.Session, m *discordgo.MessageCreate, state *V
 
 	// Update state before sending email
 	state.SetNetID(netID, verificationCode)
-	if stateErr := database.Instance.SetAgreementState(m.Author.ID, state); stateErr != nil {
+	if stateErr := vm.UpdateVerificationState(m.Author.ID, state); stateErr != nil {
 		log.Error("Failed to update agreement state", "user", m.Author.ID, "error", stateErr)
 		s.ChannelMessageSend(m.ChannelID, "An error occurred. Please try `!agree` again.")
 		return
@@ -195,7 +195,7 @@ func handleNetIDEntry(s *discordgo.Session, m *discordgo.MessageCreate, state *V
 		log.Error("Failed to send verification email", "user", m.Author.ID, "netID", netID, "error", emailErr)
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Failed to send verification email.\n\nPlease check that you entered your NetID correctly or contact an administrator."))
 		// Clean up state on email failure
-		_ = database.Instance.RemoveAgreementState(m.Author.ID)
+		_ = vm.CancelVerification(m.Author.ID)
 		return
 	}
 
@@ -214,7 +214,7 @@ func handleNetIDEntry(s *discordgo.Session, m *discordgo.MessageCreate, state *V
 }
 
 // handleCodeEntry processes verification code entry step
-func handleCodeEntry(s *discordgo.Session, m *discordgo.MessageCreate, state *VerificationState, log *logger.Logger) {
+func handleCodeEntry(s *discordgo.Session, m *discordgo.MessageCreate, state *VerificationState, log *logger.Logger, vm *VerificationManager) {
 	enteredCode := strings.TrimSpace(m.Content)
 
 	// Verify code matches
@@ -227,17 +227,17 @@ func handleCodeEntry(s *discordgo.Session, m *discordgo.MessageCreate, state *Ve
 	log.Info("Verification code valid", "user", m.Author.ID)
 
 	// Code is correct, assign role
-	assignRoleAndFinish(s, m, state, state.RoleID, log)
+	assignRoleAndFinish(s, m, state, state.RoleID, log, vm)
 }
 
 // assignRoleAndFinish assigns the role and completes verification
-func assignRoleAndFinish(s *discordgo.Session, m *discordgo.MessageCreate, state *VerificationState, roleID string, log *logger.Logger) {
+func assignRoleAndFinish(s *discordgo.Session, m *discordgo.MessageCreate, state *VerificationState, roleID string, log *logger.Logger, vm *VerificationManager) {
 	// Get guild member
 	_, memberErr := s.GuildMember(state.GuildID, m.Author.ID)
 	if memberErr != nil {
 		log.Warn("User not found in guild", "user", m.Author.ID, "guild", state.GuildID, "error", memberErr)
 		s.ChannelMessageSend(m.ChannelID, "You could not be found in the server. Please make sure you're still in the server and try `!agree` again.")
-		_ = database.Instance.RemoveAgreementState(m.Author.ID)
+		_ = vm.CancelVerification(m.Author.ID)
 		return
 	}
 
@@ -246,7 +246,7 @@ func assignRoleAndFinish(s *discordgo.Session, m *discordgo.MessageCreate, state
 	if roleErr != nil {
 		log.Error("Failed to get role info", "roleID", roleID, "guild", state.GuildID, "error", roleErr)
 		s.ChannelMessageSend(m.ChannelID, "Error retrieving role information. Please contact an administrator.")
-		_ = database.Instance.RemoveAgreementState(m.Author.ID)
+		_ = vm.CancelVerification(m.Author.ID)
 		return
 	}
 
@@ -254,11 +254,20 @@ func assignRoleAndFinish(s *discordgo.Session, m *discordgo.MessageCreate, state
 	if assignErr := s.GuildMemberRoleAdd(state.GuildID, m.Author.ID, roleID); assignErr != nil {
 		log.Error("Failed to assign role", "user", m.Author.ID, "role", roleID, "guild", state.GuildID, "error", assignErr)
 		s.ChannelMessageSend(m.ChannelID, "Failed to assign role. Please contact an administrator.")
-		_ = database.Instance.RemoveAgreementState(m.Author.ID)
+		_ = vm.CancelVerification(m.Author.ID)
 		return
 	}
 
 	log.Info("Role assigned", "user", m.Author.ID, "role", role.Name, "guild", state.GuildID)
+
+	// Remove old role if this is a role switch
+	if state.RemoveRole != "" {
+		if removeErr := s.GuildMemberRoleRemove(state.GuildID, m.Author.ID, state.RemoveRole); removeErr != nil {
+			log.Warn("Failed to remove old role during role switch", "roleID", state.RemoveRole, "user", m.Author.ID, "error", removeErr)
+		} else {
+			log.Debug("Old role removed during role switch", "roleID", state.RemoveRole, "user", m.Author.ID)
+		}
+	}
 
 	// Get permission role if it exists and assign it too
 	agreementRoles, rolesErr := database.Instance.GetAgreementRoles(state.GuildID)
@@ -276,7 +285,7 @@ func assignRoleAndFinish(s *discordgo.Session, m *discordgo.MessageCreate, state
 	}
 
 	// Clean up verification state
-	if cleanupErr := database.Instance.RemoveAgreementState(m.Author.ID); cleanupErr != nil {
+	if cleanupErr := vm.CompleteVerification(m.Author.ID); cleanupErr != nil {
 		log.Error("Failed to clean up agreement state", "user", m.Author.ID, "error", cleanupErr)
 	}
 
@@ -298,7 +307,7 @@ func assignRoleAndFinish(s *discordgo.Session, m *discordgo.MessageCreate, state
 	log.Info("Verification completed successfully", "user", m.Author.ID, "guild", state.GuildID)
 
 	welcomeChannelID, err := database.Instance.GetGuildSettingString(state.GuildID, "welcomeChannel")
-	if err == nil && welcomeChannelID != "" {
+	if !state.NoWelcome && err == nil && welcomeChannelID != "" {
 		welcomeText, textErr := database.Instance.GetGuildSettingString(state.GuildID, "welcomeText")
 		if textErr != nil || welcomeText == "" {
 			welcomeText = fmt.Sprintf("Welcome to %s, <@%s>!", guildName, m.Author.ID)

@@ -16,7 +16,6 @@ type CommandJob struct {
 	Message *discordgo.MessageCreate
 	Command string
 	Args    []string
-	Ctx     context.Context
 }
 
 type CommandProcessor struct {
@@ -72,26 +71,25 @@ func (cp *CommandProcessor) worker(id int) {
 func (cp *CommandProcessor) processJob(job *CommandJob, workerID int) {
 	cp.logger.Debug("Processing command", "command", job.Command, "worker_id", workerID, "user", job.Message.Author.Username)
 
-	jobCtx, cancel := context.WithTimeout(job.Ctx, 20*time.Second)
-	defer cancel()
-
-	select {
-	case <-jobCtx.Done():
-		cp.logger.Warn("Command job cancelled before processing", "command", job.Command)
-		return
-	default:
-	}
-
 	handler, ok := commands.Registry[job.Command]
 	if !ok {
 		cp.logger.Debug("Unknown command", "command", job.Command, "user", job.Message.Author.Username)
-		job.Session.ChannelMessageSend(job.Message.ChannelID, "❓ Unknown command. Type `!help`.")
 		return
 	}
 
-	if err := handler(job.Session, job.Message, job.Args, cp.logger, cp.vm); err != nil {
-		cp.logger.Error("Command execution failed", "command", job.Command, "error", err)
-		job.Session.ChannelMessageSend(job.Message.ChannelID, "❌ An error occurred while processing your command.")
+	done := make(chan error, 1)
+	go func() {
+		done <- handler(job.Session, job.Message, job.Args, cp.logger, cp.vm)
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			cp.logger.Error("Command execution failed", "command", job.Command, "error", err)
+			job.Session.ChannelMessageSend(job.Message.ChannelID, "❌ An error occurred while processing your command.")
+		}
+	case <-time.After(20 * time.Second):
+		cp.logger.Warn("Command timed out", "command", job.Command, "user", job.Message.Author.Username)
 	}
 }
 
