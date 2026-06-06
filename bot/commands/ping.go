@@ -7,6 +7,6 @@ import (
 )
 
 func Ping(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
-	_, err := s.ChannelMessageSend(m.ChannelID, "🏓 Pong!")
+	_, err := s.ChannelMessageSend(m.ChannelID, "Pong!")
 	return err
 }

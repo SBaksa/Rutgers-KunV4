@@ -28,6 +28,7 @@ var Registry = map[string]CommandFunc{
 	"echo":                 Echo,
 	"ignore":               Ignore,
 	"unignore":             Ignore,
+	"listignored":          ListIgnored,
 	"netid":                NetID,
 	"8ball":                EightBall,
 	"eightball":            EightBall,

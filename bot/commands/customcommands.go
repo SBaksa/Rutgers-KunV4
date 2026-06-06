@@ -21,7 +21,7 @@ func CCAdd(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 		return nil
 	}
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 	if len(args) < 2 {
@@ -39,7 +39,7 @@ func CCAdd(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 	}
 
 	database.Instance.SetCustomCommand(m.GuildID, name, data)
-	_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ Custom command `!%s` added.", name))
+	_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Custom command `!%s` added.", name))
 	return err
 }
 
@@ -48,7 +48,7 @@ func CCRemove(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 		return nil
 	}
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 	if len(args) == 0 {
@@ -58,7 +58,7 @@ func CCRemove(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 
 	name := strings.ToLower(args[0])
 	database.Instance.RemoveCustomCommand(m.GuildID, name)
-	_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ Custom command `!%s` removed.", name))
+	_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Custom command `!%s` removed.", name))
 	return err
 }
 
@@ -132,7 +132,12 @@ func CC(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *lo
 	case "detail":
 		return CCDetail(s, m, rest, log, vm)
 	default:
-		_, err := s.ChannelMessageSend(m.ChannelID, "Usage: `!cc add/remove/list/detail`")
+		var data customCommandData
+		if err := database.Instance.GetCustomCommand(m.GuildID, subcommand, &data); err == nil {
+			_, sendErr := s.ChannelMessageSend(m.ChannelID, data.Response)
+			return sendErr
+		}
+		_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Unknown command `!cc %s`. Use `!cc list` to see available commands.", subcommand))
 		return err
 	}
 }

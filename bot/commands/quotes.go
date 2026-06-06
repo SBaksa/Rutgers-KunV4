@@ -31,7 +31,7 @@ func Quote(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 
 	user, err := s.User(userID)
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ User not found.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "User not found.")
 		return sendErr
 	}
 
@@ -42,7 +42,7 @@ func Quote(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 
 	messages, err := s.ChannelMessages(m.ChannelID, 100, m.ID, "", "")
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Couldn't fetch messages.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Couldn't fetch messages.")
 		return sendErr
 	}
 
@@ -164,7 +164,7 @@ func DeleteQuote(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 	}
 
 	if len(deleted) == 0 {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ No valid indices provided.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "No valid indices provided.")
 		return err
 	}
 

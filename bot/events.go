@@ -10,6 +10,15 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+var botStartTime = time.Now()
+
+func ThreadCreateHandler(s *discordgo.Session, t *discordgo.ThreadCreate) {
+	if t.Type == discordgo.ChannelTypeGuildPrivateThread {
+		return
+	}
+	s.ThreadJoin(t.ID)
+}
+
 func ReactionHandler(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 	if r.UserID == s.State.User.ID {
 		return
@@ -100,6 +109,10 @@ func MessageDeleteHandler(s *discordgo.Session, m *discordgo.MessageDelete, log 
 		return
 	}
 
+	if time.Now().Before(botStartTime.Add(10 * time.Second)) {
+		return
+	}
+
 	logChannelID, err := database.Instance.GetGuildSettingString(m.GuildID, "logChannel")
 	if err != nil || logChannelID == "" {
 		return
@@ -149,6 +162,10 @@ func MessageUpdateHandler(s *discordgo.Session, m *discordgo.MessageUpdate, log 
 		return
 	}
 	if m.GuildID == "" || m.Content == "" {
+		return
+	}
+
+	if time.Now().Before(botStartTime.Add(10 * time.Second)) {
 		return
 	}
 

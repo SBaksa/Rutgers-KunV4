@@ -66,7 +66,7 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor 
 	command := strings.ToLower(parts[0])
 	args := parts[1:]
 
-	log.Debug("Command received", "command", command, "author", m.Author.Username, "guild", m.GuildID)
+	log.Debug("Command received", "command", command, "author", m.Author.Username, "guild", m.GuildID, "msg_id", m.ID, "args", args)
 
 	job := &CommandJob{
 		Session: s,

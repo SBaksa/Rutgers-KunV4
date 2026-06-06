@@ -15,7 +15,7 @@ func Diagnose(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 		return nil
 	}
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 
@@ -27,12 +27,12 @@ func Diagnose(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 	agreementChannel, err := database.Instance.GetGuildSettingString(m.GuildID, "agreementChannel")
 	if err != nil || agreementChannel == "" {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:  "❌ Agreement Channel",
+			Name:  "Agreement Channel",
 			Value: "Not set. Use `!setagreementchannel #channel`",
 		})
 	} else {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:  "✅ Agreement Channel",
+			Name:  "Agreement Channel",
 			Value: fmt.Sprintf("<#%s>", agreementChannel),
 		})
 	}
@@ -40,7 +40,7 @@ func Diagnose(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 	agreementRoles, rolesErr := database.Instance.GetAgreementRoles(m.GuildID)
 	if rolesErr != nil || len(agreementRoles) == 0 {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:  "❌ Agreement Roles",
+			Name:  "Agreement Roles",
 			Value: "Not set. Use `!setagreementroles`",
 		})
 	} else {
@@ -49,7 +49,7 @@ func Diagnose(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 			roleList = append(roleList, fmt.Sprintf("<@&%s> (%s)", role.RoleID, role.Authenticate))
 		}
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:  "✅ Agreement Roles",
+			Name:  "Agreement Roles",
 			Value: strings.Join(roleList, "\n"),
 		})
 	}
@@ -57,12 +57,12 @@ func Diagnose(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 	welcomeChannel, err := database.Instance.GetGuildSettingString(m.GuildID, "welcomeChannel")
 	if err != nil || welcomeChannel == "" {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:  "⚠️ Welcome Channel",
+			Name:  "Warning: Welcome Channel",
 			Value: "Not set. Use `!setwelcomechannel #channel`",
 		})
 	} else {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:  "✅ Welcome Channel",
+			Name:  "Welcome Channel",
 			Value: fmt.Sprintf("<#%s>", welcomeChannel),
 		})
 	}
@@ -102,7 +102,7 @@ func RoleSwitch(s *discordgo.Session, m *discordgo.MessageCreate, args []string,
 
 	member, err := s.GuildMember(m.GuildID, m.Author.ID)
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Could not fetch your member info.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Could not fetch your member info.")
 		return sendErr
 	}
 
@@ -177,20 +177,20 @@ func RoleSwitch(s *discordgo.Session, m *discordgo.MessageCreate, args []string,
 	if prevRole.Authenticate == "false" && toRole.Authenticate == "true" {
 		state, stateErr := vm.StartVerification(m.Author.ID, m.GuildID)
 		if stateErr != nil {
-			_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Could not start role switch. Please try again.")
+			_, sendErr := s.ChannelMessageSend(m.ChannelID, "Could not start role switch. Please try again.")
 			return sendErr
 		}
 		state.SetRole(toRole.RoleID)
 		state.RemoveRole = prevRole.RoleID
 		state.NoWelcome = true
 		if updateErr := vm.UpdateVerificationState(m.Author.ID, state); updateErr != nil {
-			_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Could not start role switch. Please try again.")
+			_, sendErr := s.ChannelMessageSend(m.ChannelID, "Could not start role switch. Please try again.")
 			return sendErr
 		}
 
 		dmChannel, dmErr := s.UserChannelCreate(m.Author.ID)
 		if dmErr != nil {
-			_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Could not open a DM with you. Make sure DMs are enabled.")
+			_, sendErr := s.ChannelMessageSend(m.ChannelID, "Could not open a DM with you. Make sure DMs are enabled.")
 			return sendErr
 		}
 
@@ -208,11 +208,11 @@ func RoleSwitch(s *discordgo.Session, m *discordgo.MessageCreate, args []string,
 
 	// All other cases: direct swap
 	if removeErr := s.GuildMemberRoleRemove(m.GuildID, m.Author.ID, prevRole.RoleID); removeErr != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("❌ Error removing role %s: %v. Make sure the bot has Manage Roles permission.", prevName, removeErr))
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error removing role %s: %v. Make sure the bot has Manage Roles permission.", prevName, removeErr))
 		return sendErr
 	}
 	if addErr := s.GuildMemberRoleAdd(m.GuildID, m.Author.ID, toRole.RoleID); addErr != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("❌ Error adding role %s: %v. Make sure the bot has Manage Roles permission.", toName, addErr))
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error adding role %s: %v. Make sure the bot has Manage Roles permission.", toName, addErr))
 		return sendErr
 	}
 

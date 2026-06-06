@@ -69,7 +69,7 @@ func (cp *CommandProcessor) worker(id int) {
 }
 
 func (cp *CommandProcessor) processJob(job *CommandJob, workerID int) {
-	cp.logger.Debug("Processing command", "command", job.Command, "worker_id", workerID, "user", job.Message.Author.Username)
+	cp.logger.Debug("Processing command", "command", job.Command, "worker_id", workerID, "user", job.Message.Author.Username, "args", job.Args, "msg_id", job.Message.ID)
 
 	handler, ok := commands.Registry[job.Command]
 	if !ok {

@@ -19,7 +19,13 @@ func MemberCount(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 
 	guild, err := s.Guild(m.GuildID)
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Failed to fetch server info.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Failed to fetch server info.")
+		return sendErr
+	}
+
+	members, err := s.GuildMembers(m.GuildID, "", 1000)
+	if err != nil {
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Failed to fetch members.")
 		return sendErr
 	}
 
@@ -32,7 +38,7 @@ func MemberCount(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Total Members",
-				Value:  fmt.Sprintf("%d", guild.MemberCount),
+				Value:  fmt.Sprintf("%d", len(members)),
 				Inline: true,
 			},
 		},
@@ -105,7 +111,7 @@ func FetchMessage(s *discordgo.Session, m *discordgo.MessageCreate, args []strin
 
 	msg, err := s.ChannelMessage(m.ChannelID, args[0])
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Message not found.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Message not found.")
 		return sendErr
 	}
 

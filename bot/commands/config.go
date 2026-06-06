@@ -15,7 +15,7 @@ func SetWelcomeChannel(s *discordgo.Session, m *discordgo.MessageCreate, args []
 		return nil
 	}
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 	if len(args) == 0 {
@@ -40,7 +40,7 @@ func SetWelcomeText(s *discordgo.Session, m *discordgo.MessageCreate, args []str
 		return nil
 	}
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 	if len(args) == 0 {
@@ -71,7 +71,7 @@ func SetLogChannel(s *discordgo.Session, m *discordgo.MessageCreate, args []stri
 		return nil
 	}
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 	if len(args) == 0 {
@@ -96,7 +96,7 @@ func SetAgreementChannel(s *discordgo.Session, m *discordgo.MessageCreate, args 
 		return nil
 	}
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 	if len(args) == 0 {
@@ -133,7 +133,7 @@ func SetAgreementRoles(s *discordgo.Session, m *discordgo.MessageCreate, args []
 		return nil
 	}
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 	if len(args) == 0 {
@@ -150,7 +150,7 @@ func SetAgreementRoles(s *discordgo.Session, m *discordgo.MessageCreate, args []
 	input := strings.Join(args, " ")
 	parts := strings.SplitN(input, ",", 2)
 	if len(parts) != 2 {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ Invalid format. Use `!setagreementroles <role name>, <true/false/permission>`")
+		_, err := s.ChannelMessageSend(m.ChannelID, "Invalid format. Use `!setagreementroles <role name>, <true/false/permission>`")
 		return err
 	}
 
@@ -158,26 +158,30 @@ func SetAgreementRoles(s *discordgo.Session, m *discordgo.MessageCreate, args []
 	authenticate := strings.TrimSpace(strings.ToLower(parts[1]))
 
 	if authenticate != "true" && authenticate != "false" && authenticate != "permission" {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ Authentication must be `true`, `false`, or `permission`.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "Authentication must be `true`, `false`, or `permission`.")
 		return err
 	}
 
 	guild, err := s.Guild(m.GuildID)
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Failed to fetch server info.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Failed to fetch server info.")
 		return sendErr
 	}
 
 	var foundRoleID string
-	for _, role := range guild.Roles {
-		if strings.ToLower(role.Name) == roleName {
-			foundRoleID = role.ID
-			break
+	if strings.HasPrefix(parts[0], "<@&") {
+		foundRoleID = strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(parts[0]), "<@&"), ">")
+	} else {
+		for _, role := range guild.Roles {
+			if strings.ToLower(role.Name) == roleName {
+				foundRoleID = role.ID
+				break
+			}
 		}
 	}
 
 	if foundRoleID == "" {
-		_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("❌ Role `%s` not found.", roleName))
+		_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Role `%s` not found.", roleName))
 		return err
 	}
 
@@ -190,7 +194,7 @@ func SetAgreementRoles(s *discordgo.Session, m *discordgo.MessageCreate, args []
 		}
 	}
 	if authenticate == "permission" && permissionCount >= 1 {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ Only one permission role is allowed.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "Only one permission role is allowed.")
 		return err
 	}
 
@@ -200,7 +204,7 @@ func SetAgreementRoles(s *discordgo.Session, m *discordgo.MessageCreate, args []
 	})
 
 	database.Instance.SetAgreementRoles(m.GuildID, existingRoles)
-	_, err = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ Role `%s` added to agreement roles with authentication: `%s`.", roleName, authenticate))
+	_, err = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Role `%s` added to agreement roles with authentication: `%s`.", roleName, authenticate))
 	return err
 }
 
@@ -209,13 +213,13 @@ func ListConfig(s *discordgo.Session, m *discordgo.MessageCreate, args []string,
 		return nil
 	}
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 
 	guild, err := s.Guild(m.GuildID)
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Failed to fetch server info.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Failed to fetch server info.")
 		return sendErr
 	}
 

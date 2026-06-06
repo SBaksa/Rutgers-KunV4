@@ -16,27 +16,29 @@ func Echo(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 		return nil
 	}
 
-	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+	if len(args) == 0 {
+		_, err := s.ChannelMessageSend(m.ChannelID, "Usage: `!echo <text>` or `!echo #channel <text>`")
 		return err
 	}
 
-	if len(args) < 2 {
-		_, err := s.ChannelMessageSend(m.ChannelID, "Usage: `!echo #channel <message>`")
-		return err
+	targetChannelID := m.ChannelID
+	message := strings.Join(args, " ")
+
+	if strings.HasPrefix(args[0], "<#") && len(args) >= 2 {
+		if !IsModerator(s, m) {
+			_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to echo to another channel.")
+			return err
+		}
+		targetChannelID = strings.TrimPrefix(strings.TrimSuffix(strings.TrimPrefix(args[0], "<#"), ">"), "!")
+		message = strings.Join(args[1:], " ")
 	}
 
-	channelMention := args[0]
-	channelID := strings.TrimPrefix(strings.TrimSuffix(strings.TrimPrefix(channelMention, "<#"), ">"), "!")
-	message := strings.Join(args[1:], " ")
-
-	_, err := s.ChannelMessageSend(channelID, message)
+	_, err := s.ChannelMessageSend(targetChannelID, message)
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("❌ Failed to send message: %v", err))
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Failed to send message: %v", err))
 		return sendErr
 	}
 
-	s.MessageReactionAdd(m.ChannelID, m.ID, "👍")
 	return nil
 }
 
@@ -46,7 +48,7 @@ func Ignore(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log
 	}
 
 	if !IsModerator(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ You don't have permission to use this command.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 
@@ -64,18 +66,50 @@ func Ignore(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log
 
 	if err == nil && ignored {
 		database.Instance.RemoveGuildSetting(m.GuildID, key)
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ Successfully unignored <#%s>.", channelID))
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Successfully unignored <#%s>.", channelID))
 	} else {
 		database.Instance.SetGuildSetting(m.GuildID, key, true)
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ Successfully ignored <#%s>.", channelID))
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Successfully ignored <#%s>.", channelID))
 	}
 
 	return nil
 }
 
+func ListIgnored(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
+	if m.GuildID == "" {
+		return nil
+	}
+	if !IsModerator(s, m) {
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
+		return err
+	}
+
+	allSettings, err := database.Instance.GetAllGuildSettings(m.GuildID)
+	if err != nil {
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Failed to fetch settings.")
+		return sendErr
+	}
+
+	var channels []string
+	for key := range allSettings {
+		if strings.HasPrefix(key, "ignored:") {
+			channelID := strings.TrimPrefix(key, "ignored:")
+			channels = append(channels, fmt.Sprintf("<#%s>", channelID))
+		}
+	}
+
+	if len(channels) == 0 {
+		_, err := s.ChannelMessageSend(m.ChannelID, "No channels are currently ignored.")
+		return err
+	}
+
+	_, err = s.ChannelMessageSend(m.ChannelID, "Ignored channels:\n"+strings.Join(channels, "\n"))
+	return err
+}
+
 func NetID(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
 	if !isOwner(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "❌ This command is owner only.")
+		_, err := s.ChannelMessageSend(m.ChannelID, "This command is owner only.")
 		return err
 	}
 
@@ -91,7 +125,7 @@ func NetID(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 
 	guilds, err := s.UserGuilds(100, "", "", false)
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Failed to fetch guilds.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Failed to fetch guilds.")
 		return sendErr
 	}
 
@@ -119,7 +153,7 @@ func NetID(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 
 	user, err := s.User(foundUserID)
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("❌ User found but could not fetch details: %v", err))
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("User found but could not fetch details: %v", err))
 		return sendErr
 	}
 

@@ -96,7 +96,7 @@ func Agree(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 	log.Debug("Verification initiated", "user", m.Author.ID, "guild", m.GuildID, "state", state.Step)
 
 	confirmEmbed := &discordgo.MessageEmbed{
-		Title:       "✅ Check Your DMs",
+		Title:       "Check Your DMs",
 		Color:       0x00FF00,
 		Description: "I've sent you a direct message to start the verification process.",
 	}

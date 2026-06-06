@@ -284,6 +284,13 @@ func assignRoleAndFinish(s *discordgo.Session, m *discordgo.MessageCreate, state
 		}
 	}
 
+	// Persist NetID before cleaning up state
+	if state.NetID != "" {
+		if saveErr := database.Instance.SetUserData(m.Author.ID, "netid", state.NetID); saveErr != nil {
+			log.Error("Failed to save NetID", "user", m.Author.ID, "error", saveErr)
+		}
+	}
+
 	// Clean up verification state
 	if cleanupErr := vm.CompleteVerification(m.Author.ID); cleanupErr != nil {
 		log.Error("Failed to clean up agreement state", "user", m.Author.ID, "error", cleanupErr)
@@ -297,7 +304,7 @@ func assignRoleAndFinish(s *discordgo.Session, m *discordgo.MessageCreate, state
 	}
 
 	embed := &discordgo.MessageEmbed{
-		Title:       "✅ Verification Complete!",
+		Title:       "Verification Complete!",
 		Color:       0x00FF00,
 		Description: fmt.Sprintf("You have successfully been given the **%s** role in **%s**!", role.Name, guildName),
 	}

@@ -26,44 +26,42 @@ func Roll(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 	}
 
 	input := strings.ToLower(args[0])
-	if !strings.HasPrefix(input, "d") {
-		embed := &discordgo.MessageEmbed{
-			Title:       "Invalid Format",
-			Color:       0xFF0000,
-			Description: "Try `!roll d20`",
-		}
-		_, err := s.ChannelMessageSendEmbed(m.ChannelID, embed)
+
+	count := 1
+	sides := 0
+
+	if idx := strings.Index(input, "d"); idx == -1 {
+		_, err := s.ChannelMessageSend(m.ChannelID, "Invalid format. Try `!roll 2d6` or `!roll d20`.")
+		return err
+	} else if idx == 0 {
+		sides, _ = strconv.Atoi(input[1:])
+	} else {
+		count, _ = strconv.Atoi(input[:idx])
+		sides, _ = strconv.Atoi(input[idx+1:])
+	}
+
+	if sides <= 1 || count < 1 || count > 100 {
+		_, err := s.ChannelMessageSend(m.ChannelID, "Invalid dice. Use format `2d6` — max 100 dice, min 2 sides.")
 		return err
 	}
 
-	sides, err := strconv.Atoi(strings.TrimPrefix(input, "d"))
-	if err != nil || sides <= 1 {
-		embed := &discordgo.MessageEmbed{
-			Title:       "Invalid Dice",
-			Color:       0xFF0000,
-			Description: "Number of sides must be greater than 1",
-		}
-		_, embedErr := s.ChannelMessageSendEmbed(m.ChannelID, embed)
-		return embedErr
+	rolls := make([]string, count)
+	total := 0
+	for i := range rolls {
+		r := rand.Intn(sides) + 1
+		total += r
+		rolls[i] = strconv.Itoa(r)
 	}
 
-	result := rand.Intn(sides) + 1
+	desc := fmt.Sprintf("**Total: %d**", total)
+	if count > 1 {
+		desc = fmt.Sprintf("Rolls: %s\n%s", strings.Join(rolls, ", "), desc)
+	}
 
 	embed := &discordgo.MessageEmbed{
-		Title: "Dice Roll Results",
-		Color: 0x0099FF,
-		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:   "Die Type",
-				Value:  fmt.Sprintf("d%d", sides),
-				Inline: true,
-			},
-			{
-				Name:   "Result",
-				Value:  fmt.Sprintf("**%d**", result),
-				Inline: true,
-			},
-		},
+		Title:       fmt.Sprintf("%dd%d", count, sides),
+		Color:       0x0099FF,
+		Description: desc,
 		Footer: &discordgo.MessageEmbedFooter{
 			Text:    fmt.Sprintf("Rolled by %s", m.Author.Username),
 			IconURL: m.Author.AvatarURL(""),

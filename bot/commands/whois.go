@@ -21,7 +21,7 @@ func WhoIs(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 		var err error
 		targetUser, err = s.User(userID)
 		if err != nil {
-			_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ User not found. Try mentioning them with @user")
+			_, sendErr := s.ChannelMessageSend(m.ChannelID, "User not found. Try mentioning them with @user")
 			return sendErr
 		}
 	}
@@ -49,7 +49,7 @@ func WhoIs(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 	})
 
 	if targetUser.Bot {
-		embed.Description = "🤖 This is a bot!"
+		embed.Description = "This is a bot!"
 	}
 
 	if targetUser.ID == s.State.User.ID {

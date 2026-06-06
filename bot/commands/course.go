@@ -83,7 +83,7 @@ func Course(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log
 
 	matches := courseRegex.FindStringSubmatch(args[0])
 	if matches == nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ Invalid course format. Use `subject:course` (e.g., `198:111`) or `school:subject:course:section` (e.g., `01:198:111:01`)")
+		s.ChannelMessageSend(m.ChannelID, "Invalid course format. Use `subject:course` (e.g., `198:111`) or `school:subject:course:section` (e.g., `01:198:111:01`)")
 		return nil
 	}
 
@@ -99,7 +99,7 @@ func Course(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log
 
 	courseData, err := fetchCourseFromAPI(subject, semester, "NB", level)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("❌ Error fetching course data: %v", err))
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error fetching course data: %v", err))
 		return nil
 	}
 
@@ -120,7 +120,7 @@ func Course(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log
 
 	_, err = s.ChannelMessageSendEmbed(m.ChannelID, embed)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("❌ Error sending course info: %v", err))
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error sending course info: %v", err))
 		return err
 	}
 

@@ -34,7 +34,7 @@ func EightBall(s *discordgo.Session, m *discordgo.MessageCreate, args []string, 
 	question := strings.Join(args, " ")
 	response := eightBallResponses[rand.Intn(len(eightBallResponses))]
 
-	_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🎱 **%s**\n%s", question, response))
+	_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**\n%s", question, response))
 	return err
 }
 
@@ -56,7 +56,7 @@ func Love(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 
 	heart := ""
 	if percent == 100 {
-		heart = "! ❤️"
+		heart = "!"
 	}
 
 	bar := generateProgressBar(percent)
@@ -89,7 +89,7 @@ func generateProgressBar(percent int) string {
 func Meow(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
 	resp, err := http.Get("https://api.thecatapi.com/v1/images/search")
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Couldn't fetch a cat image.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Couldn't fetch a cat image.")
 		return sendErr
 	}
 	defer resp.Body.Close()
@@ -98,7 +98,7 @@ func Meow(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 		URL string `json:"url"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil || len(result) == 0 {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Couldn't fetch a cat image.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Couldn't fetch a cat image.")
 		return sendErr
 	}
 
@@ -109,7 +109,7 @@ func Meow(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 func Woof(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
 	resp, err := http.Get("https://dog.ceo/api/breeds/image/random")
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Couldn't fetch a dog image.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Couldn't fetch a dog image.")
 		return sendErr
 	}
 	defer resp.Body.Close()
@@ -119,7 +119,7 @@ func Woof(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 		Status  string `json:"status"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil || result.Status != "success" {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "❌ Couldn't fetch a dog image.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Couldn't fetch a dog image.")
 		return sendErr
 	}
 

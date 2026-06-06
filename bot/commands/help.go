@@ -52,7 +52,7 @@ func Help(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 			},
 			{
 				Name:  "Moderation",
-				Value: "`!echo #channel <message>` – Send a message to a channel\n`!ignore #channel` – Toggle ignoring commands in a channel",
+				Value: "`!echo #channel <message>` – Send a message to a channel\n`!ignore #channel` – Toggle ignoring commands in a channel\n`!listignored` – List ignored channels",
 			},
 			{
 				Name:  "Config (Mod only)",

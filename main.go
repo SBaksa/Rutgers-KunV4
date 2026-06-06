@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	log := logger.New(logger.Info, true)
+	log := logger.New(logger.Debug, true)
 	_ = godotenv.Load()
 
 	token := os.Getenv("DISCORD_TOKEN")
@@ -46,6 +46,8 @@ func main() {
 		discordgo.IntentsGuilds |
 		discordgo.IntentsDirectMessages
 
+	dg.State.MaxMessageCount = 1000
+
 	verificationManager := verification.NewVerificationManager(log)
 
 	processor := bot.NewCommandProcessor(4, log, verificationManager)
@@ -71,6 +73,9 @@ func main() {
 	})
 	dg.AddHandler(func(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 		bot.ReactionHandler(s, r)
+	})
+	dg.AddHandler(func(s *discordgo.Session, t *discordgo.ThreadCreate) {
+		bot.ThreadCreateHandler(s, t)
 	})
 
 	stopCleanup := make(chan struct{})
