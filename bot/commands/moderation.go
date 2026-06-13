@@ -193,11 +193,36 @@ func IsModerator(s *discordgo.Session, m *discordgo.MessageCreate) bool {
 	for _, roleID := range member.Roles {
 		for _, role := range guild.Roles {
 			if role.ID == roleID {
-				if role.Permissions&discordgo.PermissionManageServer != 0 ||
-					role.Permissions&discordgo.PermissionAdministrator != 0 ||
+				if role.Permissions&discordgo.PermissionAdministrator != 0 ||
 					role.Permissions&discordgo.PermissionKickMembers != 0 {
 					return true
 				}
+			}
+		}
+	}
+
+	return false
+}
+
+func IsAdmin(s *discordgo.Session, m *discordgo.MessageCreate) bool {
+	guild, err := s.Guild(m.GuildID)
+	if err != nil {
+		return false
+	}
+
+	if guild.OwnerID == m.Author.ID {
+		return true
+	}
+
+	member, err := s.GuildMember(m.GuildID, m.Author.ID)
+	if err != nil {
+		return false
+	}
+
+	for _, roleID := range member.Roles {
+		for _, role := range guild.Roles {
+			if role.ID == roleID && role.Permissions&discordgo.PermissionAdministrator != 0 {
+				return true
 			}
 		}
 	}

@@ -14,7 +14,7 @@ func Diagnose(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 	if m.GuildID == "" {
 		return nil
 	}
-	if !IsModerator(s, m) {
+	if !IsAdmin(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}

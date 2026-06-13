@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -11,6 +12,9 @@ import (
 	"github.com/SBaksa/Rutgers-KunV4/verification"
 	"github.com/bwmarrin/discordgo"
 )
+
+// matches discord.com, ptb.discord.com, canary.discord.com, discordapp.com (old)
+var msgLinkRegex = regexp.MustCompile(`https://(?:(?:ptb|canary)\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)`)
 
 func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor *CommandProcessor, log *logger.Logger, vm *verification.VerificationManager) {
 	if m.Author.Bot {
@@ -52,6 +56,10 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor 
 
 	commands.TrackWordCount(m.Author.ID, m.Content)
 
+	if match := msgLinkRegex.FindStringSubmatch(m.Content); match != nil {
+		handleMessageLinkPreview(s, m, match[1], match[2], match[3], log)
+	}
+
 	const prefix = "!"
 	if !strings.HasPrefix(m.Content, prefix) {
 		return
@@ -78,6 +86,69 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor 
 	if err := processor.Submit(job); err != nil {
 		log.Error("Failed to submit command job", "command", command, "error", err)
 	}
+}
+
+func handleMessageLinkPreview(s *discordgo.Session, m *discordgo.MessageCreate, guildID, channelID, messageID string, log *logger.Logger) {
+	if guildID != m.GuildID {
+		return
+	}
+
+	linked, err := s.ChannelMessage(channelID, messageID)
+	if err != nil {
+		log.Debug("Failed to fetch linked message", "channel", channelID, "message", messageID, "error", err)
+		return
+	}
+
+	if linked.Author == nil || linked.Author.Bot {
+		return
+	}
+
+	content := linked.Content
+	if content == "" {
+		if len(linked.Attachments) > 0 {
+			content = "*[Attachment]*"
+		} else if len(linked.Embeds) > 0 {
+			content = "*[Embed]*"
+		} else {
+			return
+		}
+	}
+	if len(content) > 1024 {
+		content = content[:1021] + "..."
+	}
+
+	jumpURL := fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guildID, channelID, messageID)
+
+	guildName := guildID
+	if guild, gErr := s.State.Guild(guildID); gErr == nil {
+		guildName = guild.Name
+	}
+
+	msgTime := linked.Timestamp.Format("01/02/06, 3:04 PM")
+	footerText := fmt.Sprintf("Requested by %s in %s•%s", m.Author.String(), guildName, msgTime)
+
+	embed := &discordgo.MessageEmbed{
+		Author: &discordgo.MessageEmbedAuthor{
+			Name:    linked.Author.String(),
+			IconURL: linked.Author.AvatarURL("64"),
+			URL:     jumpURL,
+		},
+		Description: content,
+		Color:       0x5865F2,
+		Footer:      &discordgo.MessageEmbedFooter{Text: footerText},
+	}
+
+	for _, att := range linked.Attachments {
+		lower := strings.ToLower(att.Filename)
+		if strings.HasSuffix(lower, ".png") || strings.HasSuffix(lower, ".jpg") ||
+			strings.HasSuffix(lower, ".jpeg") || strings.HasSuffix(lower, ".gif") ||
+			strings.HasSuffix(lower, ".webp") {
+			embed.Image = &discordgo.MessageEmbedImage{URL: att.URL}
+			break
+		}
+	}
+
+	s.ChannelMessageSendEmbed(m.ChannelID, embed)
 }
 
 func logSlur(s *discordgo.Session, m *discordgo.MessageCreate, slur string, log *logger.Logger) {
