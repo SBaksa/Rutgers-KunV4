@@ -60,6 +60,10 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor 
 		handleMessageLinkPreview(s, m, match[1], match[2], match[3], log)
 	}
 
+	if latexRegex.MatchString(m.Content) {
+		go handleLatex(s, m, log)
+	}
+
 	const prefix = "!"
 	if !strings.HasPrefix(m.Content, prefix) {
 		return

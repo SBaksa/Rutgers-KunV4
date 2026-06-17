@@ -10,8 +10,12 @@ import (
 )
 
 func Help(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
-	mod := m.GuildID != "" && IsModerator(s, m)
-	admin := m.GuildID != "" && IsAdmin(s, m)
+	var mod, admin bool
+	var manageServer bool
+	if m.GuildID != "" {
+		mod, admin = getPermissions(s, m)
+		manageServer = HasManageServer(s, m)
+	}
 
 	verificationValue := "`!agree` – Begin Rutgers NetID verification\n`!cancel` – Cancel verification\n`!roleswitch <role>` – Switch your verified role"
 	if admin {
@@ -19,7 +23,7 @@ func Help(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 	}
 
 	userInfoValue := "`!whois @user` – Info about a user\n`!whoami` – Info about the bot\n`!avatar @user` – Same as whois"
-	if mod {
+	if manageServer {
 		userInfoValue += "\n`!netid <netid>` – Look up a user by NetID"
 	}
 
@@ -68,6 +72,10 @@ func Help(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 }
 
 func DBTest(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
+	if !IsModerator(s, m) {
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
+		return err
+	}
 	if database.Instance == nil {
 		s.ChannelMessageSend(m.ChannelID, "Database not initialized")
 		return nil

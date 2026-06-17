@@ -108,8 +108,8 @@ func ListIgnored(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 }
 
 func NetID(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
-	if !isOwner(s, m) {
-		_, err := s.ChannelMessageSend(m.ChannelID, "This command is owner only.")
+	if !HasManageServer(s, m) {
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
 
@@ -120,32 +120,11 @@ func NetID(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 
 	netID := validation.NormalizeNetID(args[0])
 
-	var storedNetID string
-	var foundUserID string
-
-	guilds, err := s.UserGuilds(100, "", "", false)
+	foundUserID, err := database.Instance.FindUserByNetID(netID)
 	if err != nil {
-		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Failed to fetch guilds.")
+		_, sendErr := s.ChannelMessageSend(m.ChannelID, "Failed to query database.")
 		return sendErr
 	}
-
-	for _, guild := range guilds {
-		members, err := s.GuildMembers(guild.ID, "", 1000)
-		if err != nil {
-			continue
-		}
-		for _, member := range members {
-			err := database.Instance.GetUserData(member.User.ID, "netid", &storedNetID)
-			if err == nil && storedNetID == netID {
-				foundUserID = member.User.ID
-				break
-			}
-		}
-		if foundUserID != "" {
-			break
-		}
-	}
-
 	if foundUserID == "" {
 		_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("NetID `%s` not found.", netID))
 		return err
@@ -158,16 +137,14 @@ func NetID(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 	}
 
 	embed := &discordgo.MessageEmbed{
-		Title: user.Username + "#" + user.Discriminator,
-		Color: 0xCC0033,
+		Author: &discordgo.MessageEmbedAuthor{Name: fmt.Sprintf("NetID %s found", netID)},
+		Title:  user.String(),
+		Color:  0xCC0033,
 		Thumbnail: &discordgo.MessageEmbedThumbnail{
 			URL: user.AvatarURL("256"),
 		},
 		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:  fmt.Sprintf("NetID %s found", netID),
-				Value: fmt.Sprintf("<@%s> (%s)", foundUserID, foundUserID),
-			},
+			{Name: "User", Value: fmt.Sprintf("<@%s> (%s)", foundUserID, foundUserID)},
 		},
 	}
 
@@ -175,58 +152,74 @@ func NetID(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 	return err
 }
 
-func IsModerator(s *discordgo.Session, m *discordgo.MessageCreate) bool {
-	member, err := s.GuildMember(m.GuildID, m.Author.ID)
-	if err != nil {
-		return false
-	}
-
+// getPermissions fetches guild and member once and returns (isMod, isAdmin).
+// isMod = KICK_MEMBERS or ADMINISTRATOR; isAdmin = ADMINISTRATOR only.
+func getPermissions(s *discordgo.Session, m *discordgo.MessageCreate) (isMod bool, isAdmin bool) {
 	guild, err := s.Guild(m.GuildID)
 	if err != nil {
-		return false
+		return false, false
 	}
 
 	if guild.OwnerID == m.Author.ID {
-		return true
+		return true, true
+	}
+
+	member, err := s.GuildMember(m.GuildID, m.Author.ID)
+	if err != nil {
+		return false, false
 	}
 
 	for _, roleID := range member.Roles {
 		for _, role := range guild.Roles {
+			if role.ID != roleID {
+				continue
+			}
+			if role.Permissions&discordgo.PermissionAdministrator != 0 {
+				return true, true
+			}
+			if role.Permissions&discordgo.PermissionKickMembers != 0 {
+				isMod = true
+			}
+		}
+	}
+
+	return isMod, false
+}
+
+func IsModerator(s *discordgo.Session, m *discordgo.MessageCreate) bool {
+	mod, _ := getPermissions(s, m)
+	return mod
+}
+
+func IsAdmin(s *discordgo.Session, m *discordgo.MessageCreate) bool {
+	_, admin := getPermissions(s, m)
+	return admin
+}
+
+// HasManageServer returns true if the user has Manage Server or Administrator.
+// This sits between Mod and Admin and gates netid-related commands.
+func HasManageServer(s *discordgo.Session, m *discordgo.MessageCreate) bool {
+	guild, err := s.Guild(m.GuildID)
+	if err != nil {
+		return false
+	}
+	if guild.OwnerID == m.Author.ID {
+		return true
+	}
+	member, err := s.GuildMember(m.GuildID, m.Author.ID)
+	if err != nil {
+		return false
+	}
+	for _, roleID := range member.Roles {
+		for _, role := range guild.Roles {
 			if role.ID == roleID {
 				if role.Permissions&discordgo.PermissionAdministrator != 0 ||
-					role.Permissions&discordgo.PermissionKickMembers != 0 {
+					role.Permissions&discordgo.PermissionManageServer != 0 {
 					return true
 				}
 			}
 		}
 	}
-
-	return false
-}
-
-func IsAdmin(s *discordgo.Session, m *discordgo.MessageCreate) bool {
-	guild, err := s.Guild(m.GuildID)
-	if err != nil {
-		return false
-	}
-
-	if guild.OwnerID == m.Author.ID {
-		return true
-	}
-
-	member, err := s.GuildMember(m.GuildID, m.Author.ID)
-	if err != nil {
-		return false
-	}
-
-	for _, roleID := range member.Roles {
-		for _, role := range guild.Roles {
-			if role.ID == roleID && role.Permissions&discordgo.PermissionAdministrator != 0 {
-				return true
-			}
-		}
-	}
-
 	return false
 }
 
