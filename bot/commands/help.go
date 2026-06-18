@@ -33,7 +33,7 @@ func Help(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *
 	}
 
 	fields := []*discordgo.MessageEmbedField{
-		{Name: "General", Value: "`!ping` – Check if the bot is alive\n`!help` – Show this message\n`!roll <NdN>` – Roll dice (e.g. `!roll 2d6`)\n`!echo <text>` – Repeat a message"},
+		{Name: "General", Value: "`!ping` – Check if the bot is alive\n`!help` – Show this message\n`!roll <NdN>` – Roll dice (e.g. `!roll 2d6`)\n`!echo <text>` – Repeat a message\n`!prefix` – Show current prefix"},
 		{Name: "Course Info", Value: "`!course 198:111` – Get course info\n`!course 01:198:111:01` – Get specific section"},
 		{Name: "Verification", Value: verificationValue},
 		{Name: "User Info", Value: userInfoValue},

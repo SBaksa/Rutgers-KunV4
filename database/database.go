@@ -153,6 +153,26 @@ func (db *DB) RemoveUserData(userID, dataType string) error {
 	return db.RemoveGlobalSetting(key)
 }
 
+// FindUserByNetID returns the Discord user ID associated with a given NetID, or "" if not found.
+func (db *DB) FindUserByNetID(netID string) (string, error) {
+	encoded, err := json.Marshal(netID)
+	if err != nil {
+		return "", err
+	}
+	row := db.conn.QueryRow(
+		`SELECT key FROM settings WHERE guild='' AND key LIKE 'netid:%' AND value=?`,
+		string(encoded),
+	)
+	var key string
+	if err := row.Scan(&key); err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
+		return "", err
+	}
+	return strings.TrimPrefix(key, "netid:"), nil
+}
+
 // Utility Methods
 
 // GetAllGuildSettings returns all settings for a guild (for debugging)

@@ -10,6 +10,10 @@ import (
 )
 
 func DBCompat(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
+	if !IsModerator(s, m) {
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
+		return err
+	}
 	if database.Instance == nil {
 		s.ChannelMessageSend(m.ChannelID, "Database not initialized")
 		return nil
@@ -78,6 +82,10 @@ func DBCompat(s *discordgo.Session, m *discordgo.MessageCreate, args []string, l
 }
 
 func DBDebug(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
+	if !IsModerator(s, m) {
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
+		return err
+	}
 	if database.Instance == nil {
 		s.ChannelMessageSend(m.ChannelID, "Database not initialized")
 		return nil

@@ -64,7 +64,12 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, processor 
 		go handleLatex(s, m, log)
 	}
 
-	const prefix = "!"
+	prefix := "!"
+	if m.GuildID != "" {
+		if p, err := database.Instance.GetGuildSettingString(m.GuildID, "prefix"); err == nil && p != "" {
+			prefix = p
+		}
+	}
 	if !strings.HasPrefix(m.Content, prefix) {
 		return
 	}

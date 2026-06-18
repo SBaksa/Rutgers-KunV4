@@ -12,6 +12,7 @@ type CommandFunc func(s *discordgo.Session, m *discordgo.MessageCreate, args []s
 // Registry maps command names to their handlers
 var Registry = map[string]CommandFunc{
 	"ping":     Ping,
+	"prefix":   Prefix,
 	"roll":     Roll,
 	"help":     Help,
 	"course":   Course,

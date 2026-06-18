@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/SBaksa/Rutgers-KunV4/database"
 	"github.com/SBaksa/Rutgers-KunV4/logger"
 	"github.com/SBaksa/Rutgers-KunV4/verification"
 	"github.com/bwmarrin/discordgo"
@@ -87,6 +88,16 @@ func WhoIs(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log 
 					Inline: true,
 				})
 			}
+		}
+	}
+
+	if m.GuildID != "" && HasManageServer(s, m) {
+		var netID string
+		if err := database.Instance.GetUserData(targetUser.ID, "netid", &netID); err == nil && netID != "" {
+			embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+				Name:  "Linked NetID",
+				Value: netID,
+			})
 		}
 	}
 
