@@ -13,6 +13,7 @@ type CommandFunc func(s *discordgo.Session, m *discordgo.MessageCreate, args []s
 var Registry = map[string]CommandFunc{
 	"ping":     Ping,
 	"prefix":   Prefix,
+	"eval":     Eval,
 	"roll":     Roll,
 	"help":     Help,
 	"course":   Course,
@@ -28,7 +29,7 @@ var Registry = map[string]CommandFunc{
 	"av":       WhoIs,
 	"echo":                 Echo,
 	"ignore":               Ignore,
-	"unignore":             Ignore,
+	"unignore":             Unignore,
 	"listignored":          ListIgnored,
 	"netid":                NetID,
 	"8ball":                EightBall,

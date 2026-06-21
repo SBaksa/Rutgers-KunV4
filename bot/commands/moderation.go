@@ -46,33 +46,56 @@ func Ignore(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log
 	if m.GuildID == "" {
 		return nil
 	}
-
 	if !IsModerator(s, m) {
 		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
 		return err
 	}
-
 	if len(args) == 0 {
 		_, err := s.ChannelMessageSend(m.ChannelID, "Usage: `!ignore #channel`")
 		return err
 	}
 
-	channelMention := args[0]
-	channelID := strings.TrimPrefix(strings.TrimSuffix(strings.TrimPrefix(channelMention, "<#"), ">"), "!")
-
+	channelID := strings.TrimPrefix(strings.TrimSuffix(strings.TrimPrefix(args[0], "<#"), ">"), "!")
 	key := fmt.Sprintf("ignored:%s", channelID)
-	var ignored bool
-	err := database.Instance.GetGuildSetting(m.GuildID, key, &ignored)
 
-	if err == nil && ignored {
-		database.Instance.RemoveGuildSetting(m.GuildID, key)
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Successfully unignored <#%s>.", channelID))
-	} else {
-		database.Instance.SetGuildSetting(m.GuildID, key, true)
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Successfully ignored <#%s>.", channelID))
+	var ignored bool
+	database.Instance.GetGuildSetting(m.GuildID, key, &ignored)
+	if ignored {
+		_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("<#%s> is already ignored.", channelID))
+		return err
 	}
 
-	return nil
+	database.Instance.SetGuildSetting(m.GuildID, key, true)
+	_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Successfully ignored <#%s>.", channelID))
+	return err
+}
+
+func Unignore(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
+	if m.GuildID == "" {
+		return nil
+	}
+	if !IsModerator(s, m) {
+		_, err := s.ChannelMessageSend(m.ChannelID, "You don't have permission to use this command.")
+		return err
+	}
+	if len(args) == 0 {
+		_, err := s.ChannelMessageSend(m.ChannelID, "Usage: `!unignore #channel`")
+		return err
+	}
+
+	channelID := strings.TrimPrefix(strings.TrimSuffix(strings.TrimPrefix(args[0], "<#"), ">"), "!")
+	key := fmt.Sprintf("ignored:%s", channelID)
+
+	var ignored bool
+	database.Instance.GetGuildSetting(m.GuildID, key, &ignored)
+	if !ignored {
+		_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("<#%s> is not ignored.", channelID))
+		return err
+	}
+
+	database.Instance.RemoveGuildSetting(m.GuildID, key)
+	_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Successfully unignored <#%s>.", channelID))
+	return err
 }
 
 func ListIgnored(s *discordgo.Session, m *discordgo.MessageCreate, args []string, log *logger.Logger, vm *verification.VerificationManager) error {
